@@ -1,9 +1,14 @@
 <p align="center">
-<img src="https://i.imgur.com/pU5A58S.png" alt="Microsoft Active Directory Logo"/>
+<img src="https://i.imgur.com/pU5A58S.png" height="40%" width="70%"alt="Microsoft Active Directory Logo"/>
 </p>
 
-<h1>On-premises Active Directory Deployed in the Cloud (Azure)</h1>
+<h1>Configuring Active Directory (On-Premises) Within Azure</h1>
 This tutorial outlines the implementation of on-premises Active Directory within Azure Virtual Machines.<br />
+
+
+<!-- <h2>Video Demonstration</h2>
+
+- ### [YouTube: How to Deploy on-premises Active Directory within Azure Compute](https://www.youtube.com) -->
 
 <h2>Environments and Technologies Used</h2>
 
@@ -12,243 +17,218 @@ This tutorial outlines the implementation of on-premises Active Directory within
 - Active Directory Domain Services
 - PowerShell
 
-<h2>Operating Systems Used</h2>
+<h2>Operating Systems Used </h2>
 
 - Windows Server 2022
-- Windows 10 (22H2)
+- Windows 10 (21H2)
 
 <h2>High-Level Deployment and Configuration Steps</h2>
 
-- Preparing the AD Infrastructure in Azure
-- Deploying Active Directory
-- Creating Users with PowerShell
-- Group Policy and Managing Accounts
-
----
+- Create Resources
+- Ensure Connectivity between the client and Domain Controller
+- Install Active Directory
+- Create an Admin and Normal User Account in AD
+- Join Client-1 to your domain (myadproject.com)
+- Setup Remote Desktop for non-administrative users on Client-1
+- Create additional users and attempt to log into client-1 with one of the users
 
 <h2>Deployment and Configuration Steps</h2>
-
-### Part 1: Preparing the AD Infrastructure in Azure
-
-#### **Setup Domain Controller in Azure**
-1. **Create a Resource Group**:
-   - Navigate to the Azure Portal and create a new Resource Group for the lab environment.
-
+<br />
+<br />
+<h3 align="center">Setup Resources in Azure</h3>
+<br />
 <p>
-<img src="https://i.imgur.com/X9D7oZr.png" height="80%" width="80%" alt="Lab 5"/>
+  Create the Domain Controller VM (Windows Server 2022) named “DC-1”:
 </p>
-
-2. **Create a Virtual Network and Subnet**:
-   - Set up a Virtual Network with a subnet to host your VMs.
-
 <p>
-<img src="https://i.imgur.com/sGOsLDu.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/gaAzjvb.png" height="75%" width="100%" alt="resource group"/>
+  <img src="https://i.imgur.com/hubTfey.png" height="75%" width="100%" alt="vm ms server"/>
 </p>
-
-3. **Create the Domain Controller VM (Windows Server 2022)**:
-   - Name the VM: `DC-1`.
-   - Ensure that the VM is on the Virtual Network created previously.
-
 <p>
-<img src="https://i.imgur.com/GSFyfLy.png" height="80%" width="80%" alt="Lab 5"/>
+  Create the Client VM (Windows 10) named “Client-1”. Use the same Resource Group and Vnet that was created in previous step:
 </p>
-
 <p>
-<img src="https://i.imgur.com/VbGeD0p.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/XyEmv8f.png" height="75%" width="100%" alt="vm windows"/>
 </p>
-
 <p>
-<img src="https://i.imgur.com/J3RywPG.png" height="80%" width="80%" alt="Lab 5"/>
+  Set Domain Controller’s NIC Private IP address to be static:
 </p>
-
-4. **Set Static Private IP for DC-1**:
-   - After the VM is created, navigate to its Network Interface Card (NIC) settings and set the private IP to static.
-
 <p>
-<img src="https://i.imgur.com/cTMJmBT.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/KHU9kC4.png" height="75%" width="100%" alt="static ip"/>
 </p>
-
-5. **Disable Windows Firewall**:
-   - Log in to `DC-1` and disable the Windows Firewall for testing connectivity.
-
 <p>
-<img src="https://i.imgur.com/M1pdqIC.png" height="80%" width="80%" alt="Lab 5"/>
+  Ensure that both VMs are in the same Vnet (you can check the topology with Network Watcher):
 </p>
-
-#### **Setup Client-1 in Azure**
-1. **Create the Client VM (Windows 10 22H2)**:
-   - Name the VM: `Client-1`.
-
 <p>
-<img src="https://i.imgur.com/IKjFWLi.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/rFpHLdQ.png" height="75%" width="100%" alt="topology"/>
 </p>
-
+<br />
+<br />
+<h3 align="center">Ensure Connectivity between the client and Domain Controller</h3>
+<br />
 <p>
-<img src="https://i.imgur.com/GDUymUz.png" height="80%" width="80%" alt="Lab 5"/>
+  Login to Client-1 with Remote Desktop and ping DC-1’s private IP address with ping -t <ip address> (perpetual ping):
 </p>
-
-2. **Attach Client-1 to the Same Region and Virtual Network**:
-   - Ensure it is in the same Virtual Network and subnet as `DC-1`.
-
 <p>
-<img src="https://i.imgur.com/xEHpjqi.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/bnPM9tX.png" height="75%" width="100%" alt="perpetual ping"/>
 </p>
-
-3. **Set DNS Settings**:
-   - Update `Client-1`'s DNS settings to point to `DC-1`'s private IP address.
-
 <p>
-<img src="https://i.imgur.com/umMQf3L.png" height="80%" width="80%" alt="Lab 5"/>
+  Login to the Domain Controller and enable ICMPv4 in on the local windows firewall:
 </p>
-
-4. **Test Connectivity**:
-   - Restart `Client-1` from the Azure Portal.
-   - Log into `Client-1` and use the `ping` command to test connectivity with `DC-1`.
-
-5. **Verify DNS Settings**:
-   - Run `ipconfig /all` in PowerShell on `Client-1` to ensure the DNS points to `DC-1`.
-
 <p>
-<img src="https://i.imgur.com/RerVndW.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/ZpPyEkt.png" height="75%" width="100%" alt="enable ICMPv4"/>
 </p>
-
----
-
-### Part 2: Deploying Active Directory
-
-#### **Install Active Directory**
-1. Log in to `DC-1`.
-2. Install Active Directory Domain Services (AD DS).
-3. Promote `DC-1` as a Domain Controller and set up a new forest (e.g., `mydomain.com`).
-4. Restart `DC-1` and log in as `mydomain.com\labuser`.
-
 <p>
-<img src="https://i.imgur.com/xlMwDNZ.png" height="80%" width="80%" alt="Lab 5"/>
+  Check back at Client-1 to see the ping succeed:
 </p>
-
 <p>
-<img src="https://i.imgur.com/TRXeQJq.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/8o3OfjY.png" height="75%" width="100%" alt="ping success"/>
 </p>
-
-#### **Create a Domain Admin User**
-1. Open Active Directory Users and Computers (ADUC).
-2. Create an Organizational Unit (OU) named `_EMPLOYEES`.
-3. Create another OU named `_ADMINS`.
-4. Add a new user:
-   - Name: `Jane Doe`
-   - Username: `jane_admin`
-   - Password: `Cyberlab123!`
-5. Add `jane_admin` to the `Domain Admins` security group.
-6. Log out and log back in as `mydomain.com\jane_admin`.
-
+<br />
+<br />
+<h3 align="center">Install Active Directory</h3>
+<br />
 <p>
-<img src="https://i.imgur.com/Jq4eZPI.png" height="80%" width="80%" alt="Lab 5"/>
+  Login to DC-1 and install Active Directory Domain Services:
 </p>
-
 <p>
-<img src="https://i.imgur.com/fjfBu5v.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/A1V9XJ5.png" height="75%" width="100%" alt="active directory install"/>
 </p>
-
 <p>
-<img src="https://i.imgur.com/OTBl5tT.png" height="80%" width="80%" alt="Lab 5"/>
+  Promote as a Domain Controller:
 </p>
-
-#### **Join Client-1 to the Domain**
-1. Log in as the local admin and join `Client-1` to the domain.
-2. Create a new OU titled '_CLIENTS' & add `Client-1` in ADUC to `_CLIENTS`.
-
 <p>
-<img src="https://i.imgur.com/2xHyKvs.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/zi15fw4.png" height="75%" width="100%" alt="domain controller promotion"/>
 </p>
-
 <p>
-<img src="https://i.imgur.com/kcyfdIP.png" height="80%" width="80%" alt="Lab 5"/>
+  Setup a new forest as myactivedirectory.com (can be anything, just remember what it is - I ultimately did set it up as myadproject.com which you'll see in the next pic):
 </p>
-
----
-
-### Part 3: Creating Users with PowerShell
-
-#### **Setup Remote Desktop for Domain Users**
-1. Log into `Client-1` as `mydomain.com\jane_admin`.
-2. Open System Properties and enable Remote Desktop.
-3. Allow "domain users" access to Remote Desktop.
-
 <p>
-<img src="https://i.imgur.com/hK9sB8R.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/DCFUVrM.png" height="75%" width="100%" alt="set new forest"/>
 </p>
-
-#### **Create Users with PowerShell**
-1. Log in to `DC-1` as `jane_admin`.
-2. Open PowerShell ISE as an administrator.
-3. Create multiple new users using a script (script link: https://github.com/joshmadakor1/AD_PS/blob/master/Generate-Names-Create-Users.ps1).
-4. Verify users appear in the `_EMPLOYEES` OU in ADUC.
-5. Attempt to log into `Client-1` with one of the created accounts.
-
 <p>
-<img src="https://i.imgur.com/RAgS5GM.png" height="80%" width="80%" alt="Lab 5"/>
+  Restart and then log back into DC-1 as user: myadproject.com\labuser:
 </p>
-
 <p>
-<img src="https://i.imgur.com/Qe1OaOn.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/7UakWMQ.png" height="75%" width="100%" alt="fqdn login"/>
 </p>
-
+<br />
+<br />
+<h3 align="center">Create an Admin and Normal User Account in AD</h3>
+<br />
 <p>
-<img src="https://i.imgur.com/iXBrDci.png" height="80%" width="80%" alt="Lab 5"/>
+  In Active Directory Users and Computers (ADUC), create an Organizational Unit (OU) called “_EMPLOYEES” and another one called "_ADMINS":
 </p>
-
----
-
-### Part 4: Group Policy and Managing Accounts
-
-#### **Account Lockout Configuration**
-1. Log in to `DC-1`.
-2. Open Group Policy Management.
-3. Edit the Default Domain Policy:
-   - Set account lockout threshold to 5 invalid attempts.
-4. Attempt to log in with a user account using incorrect passwords. Observe the account lockout behavior.
-5. Unlock the account in ADUC and reset the password.
-
 <p>
-<img src="https://i.imgur.com/4xZVZxJ.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/cYmv0r7.png" height="75%" width="100%" alt="organizational unit"/>
+  <img src="https://i.imgur.com/v02CBPI.png" height="75%" width="100%" alt="organizational unit"/>
 </p>
-
 <p>
-<img src="https://i.imgur.com/KW95ZOG.png" height="80%" width="80%" alt="Lab 5"/>
+  Create a new employee named “Jane Doe” with the username of “jane_admin”:
 </p>
-
 <p>
-<img src="https://i.imgur.com/uWoFU61.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/h546E6L.png" height="75%" width="100%" alt="admin creation"/>
 </p>
-
-#### **Enable and Disable Accounts**
-1. Disable a user account in ADUC.
-2. Attempt to log in with the disabled account and observe the error message.
-3. Re-enable the account and log in successfully.
-
 <p>
-<img src="https://i.imgur.com/CUUcX8S.png" height="80%" width="80%" alt="Lab 5"/>
+  Add jane_admin to the “Domain Admins” Security Group:
 </p>
-
 <p>
-<img src="https://i.imgur.com/TkMtlW1.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/mnLwTgq.png" height="75%" width="100%" alt="security group"/>
 </p>
-
+<p>  
+  Log out/close the Remote Desktop connection to DC-1 and log back in as “myadproject.com\jane_admin”. Use jane_admin as your admin account from now on:
+</p>
 <p>
-<img src="https://i.imgur.com/KWKL3VZ.png" height="80%" width="80%" alt="Lab 5"/>
+  <img src="https://i.imgur.com/xWZ4Kol.png" height="75%" width="100%" alt="admin login"/>
 </p>
-
-#### **Observing Logs**
-1. Review authentication and account-related logs in Event Viewer:
-   - Log on `DC-1` for domain-level events (shown below).
-   - Log on `Client-1` for local events.
-
+<br />
+<br />
+<h3 align="center">Join Client-1 to your domain (myadproject.com)</h3>
+<br />
 <p>
-<img src="https://i.imgur.com/YwM0mgQ.png" height="80%" width="80%" alt="Lab 5"/>
+  From the Azure Portal, set Client-1’s DNS settings to the DC’s Private IP address:
 </p>
-
----
-
-### Completion
-
-Congratulations! You have successfully deployed and configured an on-premises Active Directory environment in Azure.
+<p>
+  <img src="https://i.imgur.com/1KRsjI6.png" height="75%" width="100%" alt="client dns settings"/>
+</p>
+<p>
+  From the Azure Portal, restart Client-1.
+</p>
+<p>
+  Login to Client-1 (Remote Desktop) as the original local admin (labuser) and join it to the domain (computer will restart):
+</p>
+<p>
+  <img src="https://i.imgur.com/50wszcP.png" height="75%" width="100%" alt="domain joining"/>
+</p>
+<p>
+  Login to the Domain Controller (Remote Desktop) and verify Client-1 shows up in Active Directory Users and Computers (ADUC) inside the “Computers” container on the root of the domain.
+</p>
+<p>
+  Create a new OU named “_CLIENTS” and drag Client-1 into there:
+</p>
+<p>
+  <img src="https://i.imgur.com/vB1n9m0.png" height="75%" width="100%" alt="active directory client verification"/>
+</p>
+<br />
+<br />
+<h3 align="center">Setup Remote Desktop for non-administrative users on Client-1</h3>
+<br />
+<p>
+  Log into Client-1 as mydomain.com\jane_admin and open system properties.
+</p>
+<p>
+  Click “Remote Desktop”.
+</p>
+<p>
+  Allow “domain users” access to remote desktop.
+</p>
+<p>
+  You can now log into Client-1 as a normal, non-administrative user now.
+</p>
+<p>
+  Normally you’d want to do this with Group Policy that allows you to change MANY systems at once (maybe a future lab):
+</p>
+<p>
+  <img src="https://i.imgur.com/8BfpT3s.png" height="75%" width="100%" alt="remote desktop setup"/>
+</p>
+<br />
+<br />
+<h3 align="center">Create a bunch of additional users and attempt to log into client-1 with one of the users</h3>
+<br />
+<p>
+  Login to DC-1 as jane_admin
+</p>
+<p>
+  Open PowerShell_ise as an administrator.
+</p> 
+<p>  
+  Create a new File and paste the contents of this script (https://github.com/Xinloiazn/configure-ad/blob/main/adscript.ps1) into it:
+</p>
+<p>
+  <img src="https://i.imgur.com/0i8uApf.png" height="75%" width="100%" alt="create users script"/>
+</p>
+<p>
+  Run the script and observe the accounts being created:
+</p>
+<p>
+  <img src="https://i.imgur.com/6QOGzs6.png" height="75%" width="100%" alt="observe create users script"/>
+</p>
+<p>
+  When finished, open ADUC and observe the accounts in the appropriate OU and attempt to log into Client-1 with one of the accounts (take note of the password in the script):
+</p>
+<p>
+  <img src="https://i.imgur.com/ZZCfiCp.png" height="75%" width="100%" alt="employee user accounts"/>
+  <img src="https://i.imgur.com/7gBpNzN.png" height="75%" width="100%" alt="employee user selection"/>
+  <img src="https://i.imgur.com/cqsddjn.png" height="75%" width="100%" alt="employee user login"/>
+</p>
+<br />
+<br />
+<p>
+  I hope this tutorial helped you learn a little bit about network security protocols and observe traffic between virtual machines. This can be easily done on a PC or a Mac. Mac would just have an extra step to download the Remote Desktop App.
+</p>
+<p>
+  Now that we're done, DON'T FORGET TO CLEAN UP YOUR AZURE ENVIRONMENT so that you don't incur unnecessary charges.
+</p>
+<p>
+  Close your Remote Desktop connection, delete the Resource Group(s) created at the beginning of this tutorial, and verify Resource Group deletion.
+</p>
